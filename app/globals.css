@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink-950 text-slate-100 antialiased;
+  background-image:
+    radial-gradient(circle at 18% -10%, rgba(79, 107, 255, 0.18), transparent 42%),
+    radial-gradient(circle at 92% 4%, rgba(168, 85, 247, 0.16), transparent 46%);
+  background-attachment: fixed;
+}
+
+/* Frosted glass surface */
+.glass {
+  @apply border border-white/10 bg-white/[0.04] backdrop-blur-xl;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.45);
+}
+
+.glass-hover {
+  @apply transition-colors hover:bg-white/[0.07];
+}
+
+/* Thin custom scrollbar */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-white/10;
+}
+*::-webkit-scrollbar-thumb:hover {
+  @apply bg-white/20;
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.12) 37%,
+    rgba(255, 255, 255, 0.04) 63%
+  );
+  background-size: 400% 100%;
+  @apply animate-shimmer;
+}
+
+.gradient-text {
+  @apply bg-gradient-to-r from-brand-300 via-white to-accent-400 bg-clip-text text-transparent;
+}
