@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Higgsfield — Open Generative AI Studio</title>
+<style>
+  :root { --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: var(--font);
+    color: #e2e8f0;
+    background-color: #06070d;
+    background-image:
+      radial-gradient(circle at 18% -10%, rgba(79,107,255,0.18), transparent 42%),
+      radial-gradient(circle at 92% 4%, rgba(168,85,247,0.16), transparent 46%);
+    background-attachment: fixed;
+    overflow: hidden;
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { border-radius: 9999px; background: rgba(255,255,255,0.1); }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+  .glass {
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.45);
+    border-radius: 16px;
+  }
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar { margin: 12px; width: 248px; flex-shrink: 0; display: flex; flex-direction: column; padding: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px; }
+  .brand .logo {
+    width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; font-size: 18px;
+    background: linear-gradient(135deg, #4f6bff, #a855f7);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 12px 50px rgba(79,107,255,0.25);
+  }
+  .brand .name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .brand .sub { font-size: 11px; color: #94a3b8; }
+  .nav-label { padding: 0 8px 4px; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-top: 24px; }
+  .studio-btn {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
+    border: none; background: transparent; color: inherit; border-radius: 12px; padding: 10px 12px; margin-top: 4px; transition: all .15s;
+  }
+  .studio-btn:hover { background: rgba(255,255,255,0.06); }
+  .studio-btn.active { background: linear-gradient(90deg, rgba(79,107,255,0.25), rgba(168,85,247,0.1)); box-shadow: inset 0 0 0 1px rgba(111,141,255,0.4); }
+  .studio-btn .ico { width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; font-size: 14px; background: rgba(255,255,255,0.05); color: #94a3b8; }
+  .studio-btn.active .ico { background: rgba(79,107,255,0.3); color: #c7d2fe; }
+  .studio-btn .lbl { font-size: 14px; font-weight: 500; }
+  .studio-btn .blurb { font-size: 11px; color: #64748b; }
+  .status { margin-top: auto; }
+  .status-box { border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); border-radius: 12px; padding: 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 9999px; background: #fbbf24; display: inline-block; }
+  .ver { padding: 8px 4px 0; font-size: 11px; color: #475569; }
+
+  /* Main */
+  main { display: flex; min-width: 0; flex: 1; gap: 12px; padding: 12px; }
+  .controls { width: 360px; flex-shrink: 0; display: flex; flex-direction: column; }
+  .controls .head { border-bottom: 1px solid rgba(255,255,255,0.1); padding: 20px; }
+  .controls h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin: 0; display: flex; align-items: center; gap: 8px; }
+  .controls h1 .ic { color: #c7d2fe; }
+  .controls .head p { margin: 2px 0 0; font-size: 12px; color: #94a3b8; }
+  .body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+  label.fld { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 500; color: #94a3b8; }
+  textarea, input.txt {
+    width: 100%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: inherit;
+    border-radius: 12px; padding: 12px 14px; font-size: 14px; font-family: inherit; outline: none; resize: none;
+  }
+  textarea:focus, input.txt:focus { box-shadow: 0 0 0 2px rgba(111,141,255,0.4); }
+  textarea::placeholder, input.txt::placeholder { color: #475569; }
+
+  .models { display: grid; gap: 8px; }
+  .model {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; text-align: left;
+    border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: inherit; border-radius: 12px; padding: 12px 14px; transition: all .15s;
+  }
+  .model:hover { background: rgba(255,255,255,0.06); }
+  .model.active { border-color: rgba(111,141,255,0.5); background: rgba(79,107,255,0.1); box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 12px 50px rgba(79,107,255,0.25); }
+  .model .mname { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .model .mdesc { font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { border-radius: 4px; padding: 2px 6px; font-size: 9px; font-weight: 600; text-transform: uppercase; }
+  .badge.new { background: rgba(52,211,153,0.15); color: #6ee7b7; }
+  .badge.fast { background: rgba(251,191,36,0.15); color: #fcd34d; }
+  .badge.pro { background: rgba(168,85,247,0.2); color: #c084fc; }
+  .radio { width: 16px; height: 16px; flex-shrink: 0; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.2); display: grid; place-items: center; }
+  .model.active .radio { border-color: #6f8dff; background: #6f8dff; }
+  .model.active .radio::after { content: ""; width: 6px; height: 6px; border-radius: 9999px; background: #06070d; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: #cbd5e1;
+    border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 500; transition: all .15s;
+  }
+  .chip:hover { background: rgba(255,255,255,0.07); }
+  .chip.active { border-color: rgba(111,141,255,0.5); background: rgba(79,107,255,0.15); color: #c7d2fe; }
+
+  .refs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ref { width: 56px; height: 56px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; position: relative; }
+  .ref img { width: 100%; height: 100%; object-fit: cover; }
+  .ref .rm { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,0.6); opacity: 0; cursor: pointer; font-size: 12px; }
+  .ref:hover .rm { opacity: 1; }
+  .ref-add { width: 56px; height: 56px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.2); background: transparent; color: #64748b; cursor: pointer; font-size: 18px; }
+  .ref-add:hover { border-color: rgba(111,141,255,0.5); color: #c7d2fe; }
+
+  .foot { border-top: 1px solid rgba(255,255,255,0.1); padding: 20px; }
+  .err { margin-bottom: 12px; border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.1); color: #fca5a5; border-radius: 8px; padding: 8px 12px; font-size: 12px; }
+  .generate {
+    width: 100%; cursor: pointer; border: none; border-radius: 12px; padding: 12px 16px; font-size: 14px; font-weight: 600; color: #fff;
+    background: linear-gradient(90deg, #4f6bff, #a855f7); box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 12px 50px rgba(79,107,255,0.25); transition: filter .15s;
+  }
+  .generate:hover { filter: brightness(1.1); }
+  .generate:disabled { opacity: 0.6; cursor: default; }
+  .mode-note { margin: 8px 0 0; text-align: center; font-size: 11px; color: #64748b; }
+
+  /* Canvas */
+  .canvas { min-width: 0; flex: 1; overflow-y: auto; padding: 16px; }
+  .empty { display: grid; place-items: center; height: 100%; text-align: center; }
+  .empty .ico { width: 64px; height: 64px; margin: 0 auto 16px; display: grid; place-items: center; border-radius: 16px; font-size: 30px; background: linear-gradient(135deg, rgba(79,107,255,0.3), rgba(168,85,247,0.2)); animation: floaty 6s ease-in-out infinite; }
+  .empty h3 { font-size: 18px; margin: 0; }
+  .empty p { margin: 6px auto 0; max-width: 360px; font-size: 14px; color: #94a3b8; }
+  @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+  .hist-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .hist-head h3 { font-size: 14px; font-weight: 500; color: #cbd5e1; margin: 0; }
+  .hist-head .clear { cursor: pointer; background: transparent; border: none; color: #94a3b8; font-size: 12px; padding: 4px 10px; border-radius: 8px; }
+  .hist-head .clear:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (min-width: 640px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 1280px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+  .card { position: relative; overflow: hidden; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: #11131f; display: block; }
+  .card img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+  .card:hover img { transform: scale(1.05); }
+  .card .meta { position: absolute; inset: auto 0 0 0; padding: 10px; background: linear-gradient(to top, rgba(0,0,0,0.85), transparent); opacity: 0; transition: opacity .2s; }
+  .card:hover .meta { opacity: 1; }
+  .card .meta .p { font-size: 11px; line-height: 1.3; color: #e2e8f0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .meta .tags { margin-top: 4px; font-size: 10px; color: #94a3b8; display: flex; gap: 6px; align-items: center; }
+  .card .meta .tags .t { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
+  .card .vid { position: absolute; right: 8px; top: 8px; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 9999px; background: rgba(0,0,0,0.5); font-size: 10px; backdrop-filter: blur(4px); }
+  .pending { position: relative; overflow: hidden; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); display: grid; place-items: center; }
+  .pending span { font-size: 12px; color: #94a3b8; z-index: 1; }
+  .pending::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.12) 37%, rgba(255,255,255,0.04) 63%); background-size: 400% 100%; animation: shimmer 2.2s linear infinite; }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+  .wf-tpl { display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #cbd5e1; }
+  .wf-tpl .tail { margin-left: auto; font-size: 10px; color: #475569; }
+  .wf-hero { border: 1px dashed rgba(255,255,255,0.15); border-radius: 12px; padding: 20px; text-align: center; }
+  .wf-hero .ico { width: 48px; height: 48px; margin: 0 auto 8px; display: grid; place-items: center; border-radius: 12px; font-size: 22px; background: rgba(255,255,255,0.04); }
+  .wf-hero h3 { font-size: 14px; margin: 0; }
+  .wf-hero p { font-size: 12px; color: #94a3b8; margin: 4px 0 0; }
+  .demo-pill { display:inline-block; margin-left:8px; font-size:10px; padding:2px 8px; border-radius:9999px; background:rgba(251,191,36,0.15); color:#fcd34d; vertical-align:middle; }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+const STUDIOS = [
+  { id: "image", label: "Image", blurb: "Text & image to image", icon: "✦" },
+  { id: "video", label: "Video", blurb: "Text & image to video", icon: "▶" },
+  { id: "lipsync", label: "Lip Sync", blurb: "Talking portraits", icon: "◍" },
+  { id: "cinema", label: "Cinema", blurb: "Camera-controlled shots", icon: "❖" },
+  { id: "workflow", label: "Workflow", blurb: "Node pipelines", icon: "⌗" },
+];
+
+const MODELS = [
+  { id:"soul-2", name:"Soul 2", provider:"Higgsfield", studio:"image", aspectRatios:["1:1","3:2","2:3","4:5","16:9","9:16"], description:"Photoreal portraits, fashion & editorial.", badge:"pro" },
+  { id:"soul-cast", name:"Soul Cast", provider:"Higgsfield", studio:"image", aspectRatios:["1:1","3:4","4:3","16:9","9:16"], description:"Text-only character & avatar generation.", badge:"new" },
+  { id:"nano-banana-pro", name:"Nano Banana Pro", provider:"Higgsfield", studio:"image", aspectRatios:["1:1","3:2","2:3","16:9","9:16","21:9"], description:"4K, crisp text rendering & diagrams." },
+  { id:"flux-pro", name:"Flux Pro", provider:"Black Forest", studio:"image", aspectRatios:["1:1","3:2","2:3","16:9","9:16"], description:"High-fidelity general purpose diffusion." },
+  { id:"z-image", name:"Z-Image", provider:"Local · sd.cpp", studio:"image", aspectRatios:["1:1","16:9","9:16"], description:"Runs locally with Metal GPU acceleration.", badge:"fast" },
+  { id:"kling3-0", name:"Kling 3.0", provider:"Kuaishou", studio:"video", aspectRatios:["16:9","9:16","1:1"], durations:[5,10], description:"Multi-shot motion with audio support.", badge:"pro" },
+  { id:"kling3-0-turbo", name:"Kling 3.0 Turbo", provider:"Kuaishou", studio:"video", aspectRatios:["16:9","9:16"], durations:[5], description:"Fast text-to-video & start-frame animation.", badge:"fast" },
+  { id:"seedance-2-0", name:"Seedance 2.0", provider:"ByteDance", studio:"video", aspectRatios:["16:9","9:16","1:1"], durations:[5,10], description:"Identity-preserving character motion." },
+  { id:"sora", name:"Sora", provider:"OpenAI", studio:"video", aspectRatios:["16:9","9:16","1:1"], durations:[5,10,20], description:"Long-form, coherent text-to-video.", badge:"new" },
+  { id:"lipsync-studio", name:"Lip Sync Studio", provider:"Higgsfield", studio:"lipsync", aspectRatios:["1:1","16:9","9:16"], durations:[5,10], description:"Animate a portrait or sync lips to audio." },
+  { id:"cinema-studio", name:"Cinema Studio", provider:"Higgsfield", studio:"cinema", aspectRatios:["21:9","16:9","2:1"], durations:[5,10], description:"Pro camera controls — lens, aperture, focal length.", badge:"pro" },
+];
+
+const HKEY = "higsflied:history";
+const state = {
+  studio: "image", modelId: "soul-2", prompt: "", negative: "",
+  aspect: "1:1", duration: 5, references: [],
+  history: load(), pending: false, error: null,
+};
+
+function load() { try { return JSON.parse(localStorage.getItem(HKEY) || "[]"); } catch { return []; } }
+function persist() { try { localStorage.setItem(HKEY, JSON.stringify(state.history.slice(0,60))); } catch {} }
+function modelsFor(s) { return MODELS.filter(m => m.studio === s); }
+function getModel(id) { return MODELS.find(m => m.id === id); }
+function isVideoStudio(s) { return s === "video" || s === "cinema" || s === "lipsync"; }
+function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function aspectCss(r) { const [a,b] = r.split(":").map(Number); return (a&&b) ? `${a} / ${b}` : "1 / 1"; }
+
+function selectStudio(id) {
+  state.studio = id;
+  const list = modelsFor(id);
+  if (!list.find(m => m.id === state.modelId) && list[0]) {
+    state.modelId = list[0].id;
+    if (list[0].aspectRatios) state.aspect = list[0].aspectRatios[0];
+    if (list[0].durations) state.duration = list[0].durations[0];
+  }
+  render();
+}
+function selectModel(id) {
+  state.modelId = id; const m = getModel(id);
+  if (m.aspectRatios && !m.aspectRatios.includes(state.aspect)) state.aspect = m.aspectRatios[0];
+  if (m.durations && !m.durations.includes(state.duration)) state.duration = m.durations[0];
+  render();
+}
+
+async function generate() {
+  if (!state.prompt.trim() && state.studio !== "lipsync") { state.error = "Enter a prompt first."; render(); return; }
+  state.error = null; state.pending = true; render();
+  // Demo mode: deterministic placeholder asset (no backend needed).
+  await new Promise(r => setTimeout(r, 1100));
+  const m = getModel(state.modelId);
+  const [a,b] = state.aspect.split(":").map(Number);
+  const base = 768;
+  const w = a >= b ? base : Math.round(base*a/b);
+  const h = a >= b ? Math.round(base*b/a) : base;
+  const seed = encodeURIComponent((state.modelId + ":" + state.prompt).slice(0,60));
+  const type = isVideoStudio(state.studio) ? "video" : "image";
+  const url = `https://picsum.photos/seed/${seed}/${w}/${h}`;
+  state.history.unshift({
+    id: Date.now() + "-" + Math.round(Math.random()*1e6),
+    studio: state.studio, modelName: m.name, prompt: state.prompt || "(lip sync)",
+    aspectRatio: state.aspect, type, url, createdAt: Date.now(),
+  });
+  persist(); state.pending = false; render();
+}
+
+function addRefs(files) {
+  Array.from(files).slice(0, 14 - state.references.length).forEach(f => {
+    const reader = new FileReader();
+    reader.onload = () => { state.references.push(reader.result); render(); };
+    reader.readAsDataURL(f);
+  });
+}
+
+function render() {
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+  app.appendChild(buildSidebar());
+  app.appendChild(buildMain());
+}
+
+function buildSidebar() {
+  const aside = el(`<aside class="sidebar glass"></aside>`);
+  aside.appendChild(el(`
+    <div class="brand">
+      <div class="logo">◭</div>
+      <div><div class="name">Higgsfield</div><div class="sub">Open Generative AI</div></div>
+    </div>`));
+  aside.appendChild(el(`<div class="nav-label">Studios</div>`));
+  STUDIOS.forEach(s => {
+    const b = el(`
+      <button class="studio-btn ${s.id===state.studio?"active":""}">
+        <span class="ico">${s.icon}</span>
+        <span><span class="lbl">${s.label}</span><br><span class="blurb">${s.blurb}</span></span>
+      </button>`);
+    b.onclick = () => selectStudio(s.id);
+    aside.appendChild(b);
+  });
+  aside.appendChild(el(`
+    <div class="status">
+      <div class="status-box">
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span class="dot"></span><span style="font-weight:500;">Demo mode</span></div>
+        <p style="margin:6px 0 0;font-size:11px;line-height:1.5;color:#64748b;">Standalone preview — placeholder assets, no API key needed.</p>
+      </div>
+      <div class="ver">v0.1.0 · MIT</div>
+    </div>`));
+  return aside;
+}
+
+function buildMain() {
+  const main = el(`<main></main>`);
+  main.appendChild(state.studio === "workflow" ? buildWorkflowControls() : buildControls());
+  main.appendChild(buildCanvas());
+  return main;
+}
+
+function buildControls() {
+  const meta = STUDIOS.find(s => s.id === state.studio);
+  const m = getModel(state.modelId);
+  const sec = el(`<section class="controls glass"></section>`);
+  sec.appendChild(el(`<div class="head"><h1><span class="ic">${meta.icon}</span> ${meta.label} Studio</h1><p>${meta.blurb}</p></div>`));
+
+  const body = el(`<div class="body"></div>`);
+
+  // prompt
+  const pWrap = el(`<div></div>`);
+  pWrap.appendChild(el(`<label class="fld">${state.studio==="lipsync"?"Script / dialogue":"Prompt"}</label>`));
+  const ta = el(`<textarea rows="4" placeholder="${state.studio==="lipsync"?"What should the character say…":"A cinematic portrait, soft rim light, 85mm…"}"></textarea>`);
+  ta.value = state.prompt;
+  ta.oninput = e => { state.prompt = e.target.value; };
+  pWrap.appendChild(ta); body.appendChild(pWrap);
+
+  // references
+  const rWrap = el(`<div></div>`);
+  rWrap.appendChild(el(`<div style="display:flex;justify-content:space-between;margin-bottom:8px;"><label class="fld" style="margin:0;">Reference images</label><span style="font-size:11px;color:#475569;">${state.references.length}/14</span></div>`));
+  const refs = el(`<div class="refs"></div>`);
+  state.references.forEach((src,i) => {
+    const r = el(`<div class="ref"><img src="${src}" alt=""><div class="rm">✕</div></div>`);
+    r.querySelector(".rm").onclick = () => { state.references.splice(i,1); render(); };
+    refs.appendChild(r);
+  });
+  if (state.references.length < 14) {
+    const add = el(`<button class="ref-add">+</button>`);
+    const input = el(`<input type="file" accept="image/*" multiple hidden>`);
+    add.onclick = () => input.click();
+    input.onchange = e => addRefs(e.target.files);
+    refs.appendChild(add); refs.appendChild(input);
+  }
+  rWrap.appendChild(refs); body.appendChild(rWrap);
+
+  // model select
+  const mWrap = el(`<div></div>`);
+  mWrap.appendChild(el(`<label class="fld">Model</label>`));
+  const list = el(`<div class="models"></div>`);
+  modelsFor(state.studio).forEach(mm => {
+    const active = mm.id === state.modelId;
+    const card = el(`
+      <button class="model ${active?"active":""}">
+        <span style="min-width:0;">
+          <span class="mname">${mm.name}${mm.badge?`<span class="badge ${mm.badge}">${mm.badge}</span>`:""}</span>
+          <span class="mdesc" style="display:block;">${mm.provider} · ${mm.description}</span>
+        </span>
+        <span class="radio"></span>
+      </button>`);
+    card.onclick = () => selectModel(mm.id);
+    list.appendChild(card);
+  });
+  mWrap.appendChild(list); body.appendChild(mWrap);
+
+  // aspect chips
+  if (m.aspectRatios) body.appendChild(chipRow("Aspect ratio", m.aspectRatios, state.aspect, v => { state.aspect = v; render(); }));
+  // duration chips
+  if (isVideoStudio(state.studio) && m.durations) body.appendChild(chipRow("Duration", m.durations, state.duration, v => { state.duration = v; render(); }, v => v+"s"));
+  // negative prompt
+  if (!isVideoStudio(state.studio)) {
+    const nWrap = el(`<div></div>`);
+    nWrap.appendChild(el(`<label class="fld">Negative prompt</label>`));
+    const ni = el(`<input class="txt" placeholder="blurry, low quality…">`);
+    ni.value = state.negative; ni.oninput = e => { state.negative = e.target.value; };
+    nWrap.appendChild(ni); body.appendChild(nWrap);
+  }
+  sec.appendChild(body);
+
+  // footer
+  const foot = el(`<div class="foot"></div>`);
+  if (state.error) foot.appendChild(el(`<div class="err">${esc(state.error)}</div>`));
+  const gen = el(`<button class="generate" ${state.pending?"disabled":""}>${state.pending?"Generating…":"Generate"}</button>`);
+  gen.onclick = generate;
+  foot.appendChild(gen);
+  foot.appendChild(el(`<p class="mode-note">Demo mode · no API key needed</p>`));
+  sec.appendChild(foot);
+  return sec;
+}
+
+function buildWorkflowControls() {
+  const sec = el(`<section class="controls glass"></section>`);
+  sec.appendChild(el(`<div class="head"><h1><span class="ic">⌗</span> Workflow Studio</h1><p>Node pipelines</p></div>`));
+  const body = el(`<div class="body"></div>`);
+  body.appendChild(el(`<div class="wf-hero"><div class="ico">⌗</div><h3>Node-based pipelines</h3><p>Chain multiple studios into a single multi-step generation graph.</p></div>`));
+  ["Image → Upscale → Video","Portrait → Lip Sync → Cinema","Text → Image → Reframe"].forEach(w => {
+    body.appendChild(el(`<div class="wf-tpl"><span style="color:#c7d2fe;">⌗</span> ${w} <span class="tail">template</span></div>`));
+  });
+  sec.appendChild(body);
+  return sec;
+}
+
+function chipRow(label, options, value, onChange, fmt) {
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(el(`<label class="fld">${label}</label>`));
+  const row = el(`<div class="chips"></div>`);
+  options.forEach(opt => {
+    const c = el(`<button class="chip ${opt===value?"active":""}">${fmt?fmt(opt):opt}</button>`);
+    c.onclick = () => onChange(opt);
+    row.appendChild(c);
+  });
+  wrap.appendChild(row); return wrap;
+}
+
+function buildCanvas() {
+  const sec = el(`<section class="canvas glass"></section>`);
+  if (!state.history.length && !state.pending) {
+    sec.appendChild(el(`
+      <div class="empty"><div><div class="ico">◭</div>
+        <h3>Your canvas is empty</h3>
+        <p>Write a prompt, pick a model, and hit Generate. Results appear here and are saved to your browser history.</p>
+      </div></div>`));
+    return sec;
+  }
+  const head = el(`<div class="hist-head"><h3>History <span style="color:#64748b;">· ${state.history.length}</span></h3></div>`);
+  if (state.history.length) {
+    const clr = el(`<button class="clear">Clear</button>`);
+    clr.onclick = () => { state.history = []; persist(); render(); };
+    head.appendChild(clr);
+  }
+  sec.appendChild(head);
+
+  const grid = el(`<div class="grid"></div>`);
+  if (state.pending) {
+    const p = el(`<div class="pending"><span>generating…</span></div>`);
+    p.style.aspectRatio = aspectCss(state.aspect);
+    grid.appendChild(p);
+  }
+  state.history.forEach(it => {
+    const card = el(`
+      <a class="card" href="${it.url}" target="_blank" rel="noreferrer" title="${esc(it.prompt)}">
+        <img src="${it.url}" alt="${esc(it.prompt)}">
+        ${it.type==="video"?'<span class="vid">▶</span>':""}
+        <div class="meta"><div class="p">${esc(it.prompt)}</div>
+          <div class="tags"><span class="t">${esc(it.modelName)}</span><span>${it.aspectRatio}</span></div>
+        </div>
+      </a>`);
+    card.style.aspectRatio = aspectCss(it.aspectRatio);
+    grid.appendChild(card);
+  });
+  sec.appendChild(grid);
+  return sec;
+}
+
+render();
+</script>
+</body>
+</html>
