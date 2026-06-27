@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Higgsfield — Open Generative AI Studio</title>
 <style>
   :root { --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -152,6 +152,63 @@
   .wf-hero h3 { font-size: 14px; margin: 0; }
   .wf-hero p { font-size: 12px; color: #94a3b8; margin: 4px 0 0; }
   .demo-pill { display:inline-block; margin-left:8px; font-size:10px; padding:2px 8px; border-radius:9999px; background:rgba(251,191,36,0.15); color:#fcd34d; vertical-align:middle; }
+
+  /* Mobile-only chrome (hidden on desktop) */
+  .mobile-bar { display: none; }
+  .fab { display: none; }
+  .sheet-backdrop { display: none; }
+  .sheet-close { display: none; }
+
+  @media (max-width: 820px) {
+    body { overflow: auto; -webkit-text-size-adjust: 100%; }
+    .app { flex-direction: column; height: auto; min-height: 100dvh; }
+    .sidebar { display: none; }
+
+    .mobile-bar {
+      display: flex; flex-direction: column; gap: 10px;
+      position: sticky; top: 0; z-index: 30; margin: 8px 8px 0; padding: 12px;
+    }
+    .mb-top { display: flex; align-items: center; gap: 10px; }
+    .mb-top .logo { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 10px; font-size: 16px;
+      background: linear-gradient(135deg,#4f6bff,#a855f7); box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 8px 30px rgba(79,107,255,0.25); }
+    .mb-top .name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+    .mb-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+    .mb-chips::-webkit-scrollbar { display: none; }
+    .mb-chip { white-space: nowrap; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03);
+      color: #cbd5e1; border-radius: 9999px; padding: 7px 14px; font-size: 13px; font-weight: 500; }
+    .mb-chip.active { border-color: rgba(111,141,255,0.5); background: rgba(79,107,255,0.18); color: #c7d2fe; }
+
+    main { flex-direction: column; padding: 8px; gap: 8px; height: auto; }
+    .canvas { border-radius: 16px; min-height: calc(100dvh - 200px); padding: 12px; padding-bottom: 88px; }
+    .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+    /* Controls become a bottom sheet */
+    .controls {
+      position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: 100%;
+      max-height: 86dvh; border-radius: 22px 22px 0 0; z-index: 50;
+      transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,0,1);
+    }
+    body.sheet-open .controls { transform: translateY(0); }
+    .controls .head { padding-top: 26px; }
+    .controls .head::before { content: ""; position: absolute; top: 9px; left: 50%; transform: translateX(-50%);
+      width: 42px; height: 4px; border-radius: 9999px; background: rgba(255,255,255,0.22); }
+    .controls .head { position: relative; }
+    .sheet-close { display: grid; place-items: center; position: absolute; right: 14px; top: 22px;
+      width: 30px; height: 30px; border-radius: 9999px; border: none; background: rgba(255,255,255,0.06); color: #cbd5e1; font-size: 14px; cursor: pointer; }
+
+    .sheet-backdrop { display: block; position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.55);
+      opacity: 0; pointer-events: none; transition: opacity .3s; backdrop-filter: blur(2px); }
+    body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
+
+    .fab { display: flex; align-items: center; gap: 8px; position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 45;
+      border: none; border-radius: 9999px; padding: 14px 22px; font-size: 15px; font-weight: 600; color: #fff;
+      background: linear-gradient(90deg,#4f6bff,#a855f7); box-shadow: 0 8px 30px rgba(79,107,255,0.45); cursor: pointer; }
+    body.sheet-open .fab { display: none; }
+  }
+
+  @media (max-width: 380px) {
+    .grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -184,8 +241,11 @@ const HKEY = "higsflied:history";
 const state = {
   studio: "image", modelId: "soul-2", prompt: "", negative: "",
   aspect: "1:1", duration: 5, references: [],
-  history: load(), pending: false, error: null,
+  history: load(), pending: false, error: null, sheetOpen: false,
 };
+
+function openSheet() { state.sheetOpen = true; render(); }
+function closeSheet() { state.sheetOpen = false; render(); }
 
 function load() { try { return JSON.parse(localStorage.getItem(HKEY) || "[]"); } catch { return []; } }
 function persist() { try { localStorage.setItem(HKEY, JSON.stringify(state.history.slice(0,60))); } catch {} }
@@ -231,7 +291,7 @@ async function generate() {
     studio: state.studio, modelName: m.name, prompt: state.prompt || "(lip sync)",
     aspectRatio: state.aspect, type, url, createdAt: Date.now(),
   });
-  persist(); state.pending = false; render();
+  persist(); state.pending = false; state.sheetOpen = false; render();
 }
 
 function addRefs(files) {
@@ -245,8 +305,38 @@ function addRefs(files) {
 function render() {
   const app = document.getElementById("app");
   app.innerHTML = "";
+  app.appendChild(buildMobileBar());
   app.appendChild(buildSidebar());
   app.appendChild(buildMain());
+  app.appendChild(buildBackdrop());
+  app.appendChild(buildFab());
+  document.body.classList.toggle("sheet-open", state.sheetOpen);
+}
+
+function buildMobileBar() {
+  const bar = el(`<div class="mobile-bar glass"></div>`);
+  bar.appendChild(el(`<div class="mb-top"><div class="logo">◭</div><span class="name">Higgsfield</span><span class="demo-pill">Demo</span></div>`));
+  const chips = el(`<div class="mb-chips"></div>`);
+  STUDIOS.forEach(s => {
+    const c = el(`<button class="mb-chip ${s.id===state.studio?"active":""}">${s.icon} ${s.label}</button>`);
+    c.onclick = () => selectStudio(s.id);
+    chips.appendChild(c);
+  });
+  bar.appendChild(chips);
+  return bar;
+}
+
+function buildFab() {
+  const label = state.studio === "workflow" ? "Browse" : "Create";
+  const fab = el(`<button class="fab">✦ ${label}</button>`);
+  fab.onclick = openSheet;
+  return fab;
+}
+
+function buildBackdrop() {
+  const b = el(`<div class="sheet-backdrop"></div>`);
+  b.onclick = closeSheet;
+  return b;
 }
 
 function buildSidebar() {
@@ -288,7 +378,10 @@ function buildControls() {
   const meta = STUDIOS.find(s => s.id === state.studio);
   const m = getModel(state.modelId);
   const sec = el(`<section class="controls glass"></section>`);
-  sec.appendChild(el(`<div class="head"><h1><span class="ic">${meta.icon}</span> ${meta.label} Studio</h1><p>${meta.blurb}</p></div>`));
+  const head = el(`<div class="head"><h1><span class="ic">${meta.icon}</span> ${meta.label} Studio</h1><p>${meta.blurb}</p></div>`);
+  const close = el(`<button class="sheet-close">✕</button>`);
+  close.onclick = closeSheet; head.appendChild(close);
+  sec.appendChild(head);
 
   const body = el(`<div class="body"></div>`);
 
@@ -364,7 +457,10 @@ function buildControls() {
 
 function buildWorkflowControls() {
   const sec = el(`<section class="controls glass"></section>`);
-  sec.appendChild(el(`<div class="head"><h1><span class="ic">⌗</span> Workflow Studio</h1><p>Node pipelines</p></div>`));
+  const head = el(`<div class="head"><h1><span class="ic">⌗</span> Workflow Studio</h1><p>Node pipelines</p></div>`);
+  const close = el(`<button class="sheet-close">✕</button>`);
+  close.onclick = closeSheet; head.appendChild(close);
+  sec.appendChild(head);
   const body = el(`<div class="body"></div>`);
   body.appendChild(el(`<div class="wf-hero"><div class="ico">⌗</div><h3>Node-based pipelines</h3><p>Chain multiple studios into a single multi-step generation graph.</p></div>`));
   ["Image → Upscale → Video","Portrait → Lip Sync → Cinema","Text → Image → Reframe"].forEach(w => {
