@@ -219,6 +219,7 @@ const STUDIOS = [
   { id: "image", label: "Image", blurb: "Text & image to image", icon: "✦" },
   { id: "video", label: "Video", blurb: "Text & image to video", icon: "▶" },
   { id: "lipsync", label: "Lip Sync", blurb: "Talking portraits", icon: "◍" },
+  { id: "motion", label: "Motion Sync", blurb: "Hand & gesture transfer", icon: "✋" },
   { id: "cinema", label: "Cinema", blurb: "Camera-controlled shots", icon: "❖" },
   { id: "workflow", label: "Workflow", blurb: "Node pipelines", icon: "⌗" },
 ];
@@ -234,6 +235,8 @@ const MODELS = [
   { id:"seedance-2-0", name:"Seedance 2.0", provider:"ByteDance", studio:"video", aspectRatios:["16:9","9:16","1:1"], durations:[5,10], description:"Identity-preserving character motion." },
   { id:"sora", name:"Sora", provider:"OpenAI", studio:"video", aspectRatios:["16:9","9:16","1:1"], durations:[5,10,20], description:"Long-form, coherent text-to-video.", badge:"new" },
   { id:"lipsync-studio", name:"Lip Sync Studio", provider:"Higgsfield", studio:"lipsync", aspectRatios:["1:1","16:9","9:16"], durations:[5,10], description:"Animate a portrait or sync lips to audio." },
+  { id:"motion-control", name:"Motion Control", provider:"Higgsfield", studio:"motion", aspectRatios:["16:9","9:16","1:1"], durations:[5,10], description:"Puppeteer body & hand motion from a reference video.", badge:"pro" },
+  { id:"wan-animate", name:"Wan Animate", provider:"Alibaba", studio:"motion", aspectRatios:["16:9","9:16"], durations:[5,10], description:"Full-body gesture & hand tracking transfer." },
   { id:"cinema-studio", name:"Cinema Studio", provider:"Higgsfield", studio:"cinema", aspectRatios:["21:9","16:9","2:1"], durations:[5,10], description:"Pro camera controls — lens, aperture, focal length.", badge:"pro" },
 ];
 
@@ -251,7 +254,7 @@ function load() { try { return JSON.parse(localStorage.getItem(HKEY) || "[]"); }
 function persist() { try { localStorage.setItem(HKEY, JSON.stringify(state.history.slice(0,60))); } catch {} }
 function modelsFor(s) { return MODELS.filter(m => m.studio === s); }
 function getModel(id) { return MODELS.find(m => m.id === id); }
-function isVideoStudio(s) { return s === "video" || s === "cinema" || s === "lipsync"; }
+function isVideoStudio(s) { return s === "video" || s === "cinema" || s === "lipsync" || s === "motion"; }
 function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function aspectCss(r) { const [a,b] = r.split(":").map(Number); return (a&&b) ? `${a} / ${b}` : "1 / 1"; }
@@ -274,7 +277,8 @@ function selectModel(id) {
 }
 
 async function generate() {
-  if (!state.prompt.trim() && state.studio !== "lipsync") { state.error = "Enter a prompt first."; render(); return; }
+  if (!state.prompt.trim() && state.studio !== "lipsync" && state.studio !== "motion") { state.error = "Enter a prompt first."; render(); return; }
+  if (state.studio === "motion" && !state.references.length && !state.prompt.trim()) { state.error = "Add a driving motion reference or describe the motion."; render(); return; }
   state.error = null; state.pending = true; render();
   // Demo mode: deterministic placeholder asset (no backend needed).
   await new Promise(r => setTimeout(r, 1100));
@@ -288,7 +292,7 @@ async function generate() {
   const url = `https://picsum.photos/seed/${seed}/${w}/${h}`;
   state.history.unshift({
     id: Date.now() + "-" + Math.round(Math.random()*1e6),
-    studio: state.studio, modelName: m.name, prompt: state.prompt || "(lip sync)",
+    studio: state.studio, modelName: m.name, prompt: state.prompt || (state.studio==="motion" ? "(motion transfer)" : "(lip sync)"),
     aspectRatio: state.aspect, type, url, createdAt: Date.now(),
   });
   persist(); state.pending = false; state.sheetOpen = false; render();
@@ -387,24 +391,33 @@ function buildControls() {
 
   // prompt
   const pWrap = el(`<div></div>`);
-  pWrap.appendChild(el(`<label class="fld">${state.studio==="lipsync"?"Script / dialogue":"Prompt"}</label>`));
-  const ta = el(`<textarea rows="4" placeholder="${state.studio==="lipsync"?"What should the character say…":"A cinematic portrait, soft rim light, 85mm…"}"></textarea>`);
+  const pLabel = state.studio==="lipsync" ? "Script / dialogue" : state.studio==="motion" ? "Motion description" : "Prompt";
+  const pPh = state.studio==="lipsync" ? "What should the character say…"
+    : state.studio==="motion" ? "Waving hello, then a thumbs up with the right hand…"
+    : "A cinematic portrait, soft rim light, 85mm…";
+  pWrap.appendChild(el(`<label class="fld">${pLabel}</label>`));
+  const ta = el(`<textarea rows="4" placeholder="${pPh}"></textarea>`);
   ta.value = state.prompt;
   ta.oninput = e => { state.prompt = e.target.value; };
   pWrap.appendChild(ta); body.appendChild(pWrap);
 
   // references
   const rWrap = el(`<div></div>`);
-  rWrap.appendChild(el(`<div style="display:flex;justify-content:space-between;margin-bottom:8px;"><label class="fld" style="margin:0;">Reference images</label><span style="font-size:11px;color:#475569;">${state.references.length}/14</span></div>`));
+  const refLabel = state.studio==="motion" ? "Character + driving motion (image/video)"
+    : state.studio==="lipsync" ? "Portrait to animate" : "Reference images";
+  rWrap.appendChild(el(`<div style="display:flex;justify-content:space-between;margin-bottom:8px;"><label class="fld" style="margin:0;">${refLabel}</label><span style="font-size:11px;color:#475569;">${state.references.length}/14</span></div>`));
   const refs = el(`<div class="refs"></div>`);
   state.references.forEach((src,i) => {
-    const r = el(`<div class="ref"><img src="${src}" alt=""><div class="rm">✕</div></div>`);
+    const isVid = src.startsWith("data:video");
+    const r = el(`<div class="ref">${isVid
+      ? '<div style="width:100%;height:100%;display:grid;place-items:center;font-size:18px;background:rgba(79,107,255,0.15);">🎬</div>'
+      : `<img src="${src}" alt="">`}<div class="rm">✕</div></div>`);
     r.querySelector(".rm").onclick = () => { state.references.splice(i,1); render(); };
     refs.appendChild(r);
   });
   if (state.references.length < 14) {
     const add = el(`<button class="ref-add">+</button>`);
-    const input = el(`<input type="file" accept="image/*" multiple hidden>`);
+    const input = el(`<input type="file" accept="${state.studio==="motion" ? "image/*,video/*" : "image/*"}" multiple hidden>`);
     add.onclick = () => input.click();
     input.onchange = e => addRefs(e.target.files);
     refs.appendChild(add); refs.appendChild(input);

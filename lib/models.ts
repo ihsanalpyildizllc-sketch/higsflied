@@ -113,6 +113,29 @@ export const MODELS: AIModel[] = [
     description: "Animate a portrait or sync lips to audio.",
   },
 
+  // ---- Motion Sync (hand & gesture transfer) ----
+  {
+    id: "motion-control",
+    name: "Motion Control",
+    provider: "Higgsfield",
+    studio: "motion",
+    modes: ["motion-transfer"],
+    aspectRatios: ["16:9", "9:16", "1:1"],
+    durations: [5, 10],
+    description: "Puppeteer body & hand motion from a reference video.",
+    badge: "pro",
+  },
+  {
+    id: "wan-animate",
+    name: "Wan Animate",
+    provider: "Alibaba",
+    studio: "motion",
+    modes: ["motion-transfer"],
+    aspectRatios: ["16:9", "9:16"],
+    durations: [5, 10],
+    description: "Full-body gesture & hand tracking transfer.",
+  },
+
   // ---- Cinema ----
   {
     id: "cinema-studio",
@@ -139,6 +162,7 @@ export const STUDIOS: { id: StudioId; label: string; blurb: string; icon: string
   { id: "image", label: "Image", blurb: "Text & image to image", icon: "✦" },
   { id: "video", label: "Video", blurb: "Text & image to video", icon: "▶" },
   { id: "lipsync", label: "Lip Sync", blurb: "Talking portraits", icon: "◍" },
+  { id: "motion", label: "Motion Sync", blurb: "Hand & gesture transfer", icon: "✋" },
   { id: "cinema", label: "Cinema", blurb: "Camera-controlled shots", icon: "❖" },
   { id: "workflow", label: "Workflow", blurb: "Node pipelines", icon: "⌗" },
 ];

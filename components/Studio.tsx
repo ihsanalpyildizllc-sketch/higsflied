@@ -24,7 +24,8 @@ export function Studio() {
 
   const models = useMemo(() => modelsForStudio(studio), [studio]);
   const model = getModel(modelId);
-  const isVideoStudio = studio === "video" || studio === "cinema" || studio === "lipsync";
+  const isVideoStudio =
+    studio === "video" || studio === "cinema" || studio === "lipsync" || studio === "motion";
 
   // Load saved history once.
   useEffect(() => {
@@ -68,8 +69,12 @@ export function Studio() {
   }
 
   async function generate() {
-    if (!prompt.trim() && studio !== "lipsync") {
+    if (!prompt.trim() && studio !== "lipsync" && studio !== "motion") {
       setError("Enter a prompt first.");
+      return;
+    }
+    if (studio === "motion" && !references.length && !prompt.trim()) {
+      setError("Add a driving motion reference or describe the motion.");
       return;
     }
     setError(null);
@@ -96,7 +101,7 @@ export function Studio() {
         studio,
         model: modelId,
         modelName: data.modelName,
-        prompt: prompt || "(lip sync)",
+        prompt: prompt || (studio === "motion" ? "(motion transfer)" : "(lip sync)"),
         aspectRatio: aspect,
         type: data.type,
         url: data.url,
@@ -156,7 +161,11 @@ export function Studio() {
               <>
                 <div>
                   <label className="mb-2 block text-xs font-medium text-slate-400">
-                    {studio === "lipsync" ? "Script / dialogue" : "Prompt"}
+                    {studio === "lipsync"
+                      ? "Script / dialogue"
+                      : studio === "motion"
+                        ? "Motion description"
+                        : "Prompt"}
                   </label>
                   <textarea
                     value={prompt}
@@ -165,7 +174,9 @@ export function Studio() {
                     placeholder={
                       studio === "lipsync"
                         ? "What should the character say…"
-                        : "A cinematic portrait, soft rim light, 85mm…"
+                        : studio === "motion"
+                          ? "Waving hello, then a thumbs up with the right hand…"
+                          : "A cinematic portrait, soft rim light, 85mm…"
                     }
                     className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3 text-sm outline-none ring-brand-400/40 placeholder:text-slate-600 focus:ring-2"
                   />

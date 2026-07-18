@@ -38,7 +38,11 @@ function aspectToSize(ratio: string): { w: number; h: number } {
 function demoAsset(body: Body): { type: "image" | "video"; url: string } {
   const { w, h } = aspectToSize(body.aspectRatio);
   const seed = encodeURIComponent(`${body.model}:${body.prompt}`.slice(0, 60));
-  const isVideo = body.studio === "video" || body.studio === "cinema" || body.studio === "lipsync";
+  const isVideo =
+    body.studio === "video" ||
+    body.studio === "cinema" ||
+    body.studio === "lipsync" ||
+    body.studio === "motion";
   if (isVideo) {
     // A lightweight animated SVG stands in for a rendered clip in demo mode.
     const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'>
@@ -80,7 +84,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
 
-  if (!body.prompt?.trim() && body.studio !== "lipsync") {
+  if (!body.prompt?.trim() && body.studio !== "lipsync" && body.studio !== "motion") {
     return NextResponse.json({ error: "prompt is required" }, { status: 400 });
   }
 

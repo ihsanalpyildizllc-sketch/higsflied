@@ -1,6 +1,12 @@
-export type StudioId = "image" | "video" | "lipsync" | "cinema" | "workflow";
+export type StudioId = "image" | "video" | "lipsync" | "motion" | "cinema" | "workflow";
 
-export type ModelMode = "text-to-image" | "image-to-image" | "text-to-video" | "image-to-video" | "lipsync";
+export type ModelMode =
+  | "text-to-image"
+  | "image-to-image"
+  | "text-to-video"
+  | "image-to-video"
+  | "lipsync"
+  | "motion-transfer";
 
 export interface AIModel {
   id: string;
