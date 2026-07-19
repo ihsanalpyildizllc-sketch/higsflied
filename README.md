@@ -45,15 +45,18 @@ npm run build && npm run start
 By default the app runs in **demo mode**: `/api/generate` returns deterministic placeholder
 assets so the whole interface is usable with zero configuration.
 
-To connect a real backend, set these environment variables (see `.env.example`):
+To go live with real generation via [Muapi.ai](https://muapi.ai):
 
-```bash
-GENAI_GATEWAY_URL=https://your-gateway.example.com
-GENAI_API_KEY=sk-...
-```
+1. Sign up at muapi.ai and copy your API key.
+2. In the project root: `cp .env.example .env.local`
+3. Paste the key: `MUAPI_API_KEY=your-key-here`
+4. Restart the dev server.
 
-Then implement `callGateway()` in [`app/api/generate/route.ts`](app/api/generate/route.ts)
-to match your provider's request/response shape. The rest of the app is gateway-agnostic.
+The Muapi integration (submit → poll `predictions/{id}/result`) lives in
+[`app/api/generate/route.ts`](app/api/generate/route.ts). Model-to-endpoint slugs are in the
+`MUAPI_ENDPOINTS` map there — tweak them to taste against the
+[Muapi API reference](https://muapi.ai/docs/api-reference). The key stays server-side and
+`.env.local` is gitignored, so it never reaches the browser or the repo.
 
 ## Project structure
 

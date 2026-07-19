@@ -83,12 +83,23 @@ function ResultCard({ item }: { item: GenerationResult }) {
       style={aspectStyle(item.aspectRatio)}
       title={item.prompt}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={item.url}
-        alt={item.prompt}
-        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-      />
+      {item.type === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(item.url) ? (
+        <video
+          src={item.url}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={item.url}
+          alt={item.prompt}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+      )}
       <div className="absolute inset-x-0 bottom-0 translate-y-2 bg-gradient-to-t from-black/85 to-transparent p-2.5 opacity-0 transition-all group-hover:translate-y-0 group-hover:opacity-100">
         <div className="line-clamp-2 text-[11px] leading-snug text-slate-200">{item.prompt}</div>
         <div className="mt-1 flex items-center gap-1.5 text-[10px] text-slate-400">

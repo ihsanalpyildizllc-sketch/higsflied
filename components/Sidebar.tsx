@@ -69,7 +69,7 @@ export function Sidebar({
           <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
             {mode === "live"
               ? "Connected to your model gateway."
-              : "Set GENAI_GATEWAY_URL & GENAI_API_KEY to go live."}
+              : "Put MUAPI_API_KEY in .env.local to go live."}
           </p>
         </div>
         <div className="px-1 text-[11px] text-slate-600">v0.1.0 · MIT</div>

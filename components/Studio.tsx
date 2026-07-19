@@ -90,6 +90,7 @@ export function Studio() {
           studio,
           aspectRatio: aspect,
           duration: isVideoStudio ? duration : undefined,
+          references,
         }),
       });
       const data = await res.json();
