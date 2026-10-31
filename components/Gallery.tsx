@@ -79,11 +79,12 @@ function ResultCard({ item }: { item: GenerationResult }) {
       target="_blank"
       rel="noreferrer"
       download
-      className="group relative block overflow-hidden rounded-xl border border-white/10 bg-ink-800"
+      className="group relative block overflow-hidden rounded-xl border border-white/10 bg-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
       style={aspectStyle(item.aspectRatio)}
       title={item.prompt}
+      aria-label={`${item.prompt} — ${item.modelName}`}
     >
-      {item.type === "video" && /\.(mp4|webm|mov)(\?|$)/i.test(item.url) ? (
+      {item.type === "video" ? (
         <video
           src={item.url}
           autoPlay

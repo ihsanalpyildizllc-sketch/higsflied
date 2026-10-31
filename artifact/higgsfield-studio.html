@@ -241,6 +241,7 @@ const MODELS = [
 ];
 
 const HKEY = "higsflied:history";
+const MAX_REFS = 4;
 const state = {
   studio: "image", modelId: "soul-2", prompt: "", negative: "",
   aspect: "1:1", duration: 5, references: [],
@@ -256,7 +257,7 @@ function modelsFor(s) { return MODELS.filter(m => m.studio === s); }
 function getModel(id) { return MODELS.find(m => m.id === id); }
 function isVideoStudio(s) { return s === "video" || s === "cinema" || s === "lipsync" || s === "motion"; }
 function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
-function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function aspectCss(r) { const [a,b] = r.split(":").map(Number); return (a&&b) ? `${a} / ${b}` : "1 / 1"; }
 
 function selectStudio(id) {
@@ -299,7 +300,7 @@ async function generate() {
 }
 
 function addRefs(files) {
-  Array.from(files).slice(0, 14 - state.references.length).forEach(f => {
+  Array.from(files).slice(0, MAX_REFS - state.references.length).forEach(f => {
     const reader = new FileReader();
     reader.onload = () => { state.references.push(reader.result); render(); };
     reader.readAsDataURL(f);
@@ -314,6 +315,12 @@ function render() {
   app.appendChild(buildMain());
   app.appendChild(buildBackdrop());
   app.appendChild(buildFab());
+  // The .controls node above was just torn down and recreated, so it starts
+  // back at its default (closed) transform with no rendered frame yet. Force
+  // a synchronous layout flush before flipping the class below, otherwise the
+  // browser collapses the "closed" and "open" styles into a single frame and
+  // the bottom-sheet slide transition never plays on open or close.
+  void app.offsetHeight;
   document.body.classList.toggle("sheet-open", state.sheetOpen);
 }
 
@@ -405,7 +412,7 @@ function buildControls() {
   const rWrap = el(`<div></div>`);
   const refLabel = state.studio==="motion" ? "Character + driving motion (image/video)"
     : state.studio==="lipsync" ? "Portrait to animate" : "Reference images";
-  rWrap.appendChild(el(`<div style="display:flex;justify-content:space-between;margin-bottom:8px;"><label class="fld" style="margin:0;">${refLabel}</label><span style="font-size:11px;color:#475569;">${state.references.length}/14</span></div>`));
+  rWrap.appendChild(el(`<div style="display:flex;justify-content:space-between;margin-bottom:8px;"><label class="fld" style="margin:0;">${refLabel}</label><span style="font-size:11px;color:#475569;">${state.references.length}/${MAX_REFS}</span></div>`));
   const refs = el(`<div class="refs"></div>`);
   state.references.forEach((src,i) => {
     const isVid = src.startsWith("data:video");
@@ -415,7 +422,7 @@ function buildControls() {
     r.querySelector(".rm").onclick = () => { state.references.splice(i,1); render(); };
     refs.appendChild(r);
   });
-  if (state.references.length < 14) {
+  if (state.references.length < MAX_REFS) {
     const add = el(`<button class="ref-add">+</button>`);
     const input = el(`<input type="file" accept="${state.studio==="motion" ? "image/*,video/*" : "image/*"}" multiple hidden>`);
     add.onclick = () => input.click();

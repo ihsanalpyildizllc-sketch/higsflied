@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Higgsfield — Open Generative AI Studio",
   description:
-    "A free, open generative AI studio for images, video and lip-sync. Self-hostable and fully customizable.",
+    "A free, open generative AI studio for images, video, lip-sync and motion sync. Self-hostable and fully customizable.",
 };
 
 export const viewport: Viewport = {

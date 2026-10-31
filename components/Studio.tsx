@@ -1,12 +1,28 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { modelsForStudio, getModel, STUDIOS } from "@/lib/models";
+import { modelsForStudio, getModel, STUDIOS, MAX_REFERENCES } from "@/lib/models";
 import { loadHistory, saveHistory } from "@/lib/history";
 import type { GenerationResult, StudioId } from "@/lib/types";
 import { Sidebar } from "./Sidebar";
 import { Gallery } from "./Gallery";
 import { ModelSelect, ChipRow } from "./Controls";
+
+// Cinema Studio's own model description promises "Pro camera controls — lens,
+// aperture, focal length", but the UI never exposed any camera-move control.
+// This is a small, self-contained chip row (local state only — no changes to
+// lib/models.ts or lib/types.ts) that folds the chosen move into the prompt
+// text sent to /api/generate.
+type CameraMove = "Static" | "Dolly In" | "Dolly Out" | "Crane Up" | "360 Orbit" | "Bullet Time";
+const CAMERA_MOVES: CameraMove[] = ["Static", "Dolly In", "Dolly Out", "Crane Up", "360 Orbit", "Bullet Time"];
+const CAMERA_MOVE_PROMPT: Record<CameraMove, string> = {
+  Static: "",
+  "Dolly In": "camera slowly dollies in toward the subject",
+  "Dolly Out": "camera slowly dollies out, revealing the wider scene",
+  "Crane Up": "camera cranes upward in a rising shot",
+  "360 Orbit": "camera performs a smooth 360-degree orbit around the subject",
+  "Bullet Time": "bullet-time effect, frozen action with the camera rotating around it",
+};
 
 export function Studio() {
   const [studio, setStudio] = useState<StudioId>("image");
@@ -15,6 +31,7 @@ export function Studio() {
   const [negative, setNegative] = useState("");
   const [aspect, setAspect] = useState("1:1");
   const [duration, setDuration] = useState<number>(5);
+  const [cameraMove, setCameraMove] = useState<CameraMove>("Static");
   const [references, setReferences] = useState<string[]>([]);
   const [history, setHistory] = useState<GenerationResult[]>([]);
   const [pending, setPending] = useState<{ aspectRatio: string } | null>(null);
@@ -34,6 +51,7 @@ export function Studio() {
 
   // When the studio changes, snap the model + constrained controls to valid values.
   useEffect(() => {
+    setCameraMove("Static");
     const list = modelsForStudio(studio);
     if (!list.find((m) => m.id === modelId)) {
       const first = list[0];
@@ -60,10 +78,11 @@ export function Studio() {
   function onFiles(files: FileList | null) {
     if (!files) return;
     Array.from(files)
-      .slice(0, 14 - references.length)
+      .slice(0, MAX_REFERENCES - references.length)
       .forEach((file) => {
         const reader = new FileReader();
         reader.onload = () => setReferences((r) => [...r, reader.result as string]);
+        reader.onerror = () => setError(`Could not read "${file.name}". Try a different image.`);
         reader.readAsDataURL(file);
       });
   }
@@ -79,12 +98,18 @@ export function Studio() {
     }
     setError(null);
     setPending({ aspectRatio: aspect });
+    const cameraMoveText = studio === "cinema" ? CAMERA_MOVE_PROMPT[cameraMove] : "";
+    const effectivePrompt = cameraMoveText
+      ? prompt.trim()
+        ? `${prompt.trim()}, ${cameraMoveText}`
+        : cameraMoveText
+      : prompt;
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          prompt,
+          prompt: effectivePrompt,
           negativePrompt: negative,
           model: modelId,
           studio,
@@ -102,7 +127,7 @@ export function Studio() {
         studio,
         model: modelId,
         modelName: data.modelName,
-        prompt: prompt || (studio === "motion" ? "(motion transfer)" : "(lip sync)"),
+        prompt: effectivePrompt || (studio === "motion" ? "(motion transfer)" : "(lip sync)"),
         aspectRatio: aspect,
         type: data.type,
         url: data.url,
@@ -136,6 +161,7 @@ export function Studio() {
           <button
             key={s.id}
             onClick={() => setStudio(s.id)}
+            aria-pressed={s.id === studio}
             className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium ${
               s.id === studio ? "bg-brand-500/25 text-brand-200" : "bg-white/5 text-slate-300"
             }`}
@@ -161,7 +187,7 @@ export function Studio() {
             ) : (
               <>
                 <div>
-                  <label className="mb-2 block text-xs font-medium text-slate-400">
+                  <label htmlFor="studio-prompt" className="mb-2 block text-xs font-medium text-slate-400">
                     {studio === "lipsync"
                       ? "Script / dialogue"
                       : studio === "motion"
@@ -169,6 +195,7 @@ export function Studio() {
                         : "Prompt"}
                   </label>
                   <textarea
+                    id="studio-prompt"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     rows={4}
@@ -194,7 +221,13 @@ export function Studio() {
                   accept="image/*"
                   multiple
                   hidden
-                  onChange={(e) => onFiles(e.target.files)}
+                  aria-label="Upload reference images"
+                  onChange={(e) => {
+                    onFiles(e.target.files);
+                    // Reset so selecting the same file again (e.g. after removing
+                    // it) still fires onChange instead of silently no-op'ing.
+                    e.target.value = "";
+                  }}
                 />
 
                 <ModelSelect models={models} value={modelId} onChange={setModelId} />
@@ -204,7 +237,7 @@ export function Studio() {
                     label="Aspect ratio"
                     options={model.aspectRatios}
                     value={aspect}
-                    onChange={setAspect}
+                    onChange={(v) => setAspect(v as string)}
                   />
                 )}
 
@@ -213,17 +246,27 @@ export function Studio() {
                     label="Duration"
                     options={model.durations}
                     value={duration}
-                    onChange={setDuration}
+                    onChange={(v) => setDuration(v as number)}
                     format={(v) => `${v}s`}
+                  />
+                )}
+
+                {studio === "cinema" && (
+                  <ChipRow
+                    label="Camera move"
+                    options={CAMERA_MOVES}
+                    value={cameraMove}
+                    onChange={(v) => setCameraMove(v as CameraMove)}
                   />
                 )}
 
                 {!isVideoStudio && (
                   <div>
-                    <label className="mb-2 block text-xs font-medium text-slate-400">
+                    <label htmlFor="studio-negative" className="mb-2 block text-xs font-medium text-slate-400">
                       Negative prompt
                     </label>
                     <input
+                      id="studio-negative"
                       value={negative}
                       onChange={(e) => setNegative(e.target.value)}
                       placeholder="blurry, low quality…"
@@ -238,13 +281,18 @@ export function Studio() {
           {!isWorkflow && (
             <div className="border-t border-white/10 p-5">
               {error && (
-                <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                <div
+                  role="alert"
+                  className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300"
+                >
                   {error}
                 </div>
               )}
               <button
                 onClick={generate}
                 disabled={!!pending}
+                aria-busy={!!pending}
+                aria-live="polite"
                 className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-brand-500 to-accent-500 px-4 py-3 text-sm font-semibold shadow-glow transition-all hover:brightness-110 disabled:opacity-60"
               >
                 {pending ? "Generating…" : "Generate"}
@@ -265,17 +313,24 @@ export function Studio() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Describe what to generate…"
+                aria-label="Prompt"
                 className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-400/40"
               />
               <button
                 onClick={generate}
                 disabled={!!pending}
+                aria-busy={!!pending}
+                aria-live="polite"
                 className="rounded-xl bg-gradient-to-r from-brand-500 to-accent-500 px-4 text-sm font-semibold disabled:opacity-60"
               >
                 Go
               </button>
             </div>
-            {error && <p className="mt-2 text-xs text-red-300">{error}</p>}
+            {error && (
+              <p role="alert" className="mt-2 text-xs text-red-300">
+                {error}
+              </p>
+            )}
           </div>
 
           <Gallery items={history} pending={pending} onClear={clearHistory} />
@@ -298,24 +353,26 @@ function ReferenceUploader({
     <div>
       <div className="mb-2 flex items-center justify-between">
         <label className="text-xs font-medium text-slate-400">Reference images</label>
-        <span className="text-[11px] text-slate-600">{references.length}/14</span>
+        <span className="text-[11px] text-slate-600">{references.length}/{MAX_REFERENCES}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {references.map((src, i) => (
           <div key={i} className="group relative h-14 w-14 overflow-hidden rounded-lg border border-white/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={src} alt="" className="h-full w-full object-cover" />
+            <img src={src} alt={`Reference ${i + 1}`} className="h-full w-full object-cover" />
             <button
               onClick={() => onRemove(i)}
-              className="absolute inset-0 grid place-items-center bg-black/60 text-xs opacity-0 transition-opacity group-hover:opacity-100"
+              aria-label={`Remove reference image ${i + 1}`}
+              className="absolute inset-0 grid place-items-center bg-black/60 text-xs opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
             >
               ✕
             </button>
           </div>
         ))}
-        {references.length < 14 && (
+        {references.length < MAX_REFERENCES && (
           <button
             onClick={onPick}
+            aria-label="Add reference image"
             className="grid h-14 w-14 place-items-center rounded-lg border border-dashed border-white/20 text-slate-500 transition-colors hover:border-brand-400/50 hover:text-brand-300"
           >
             +

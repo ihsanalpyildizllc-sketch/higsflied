@@ -30,7 +30,6 @@ export interface GenerationParams {
   aspectRatio: string;
   duration?: number;
   references?: string[]; // data URLs
-  seed?: number;
 }
 
 export interface GenerationResult {

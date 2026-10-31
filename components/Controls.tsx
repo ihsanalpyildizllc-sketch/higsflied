@@ -21,7 +21,8 @@ export function ModelSelect({
             <button
               key={m.id}
               onClick={() => onChange(m.id)}
-              className={`flex items-center justify-between rounded-xl border px-3.5 py-3 text-left transition-all ${
+              aria-pressed={active}
+              className={`flex items-center justify-between rounded-xl border px-3.5 py-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
                 active
                   ? "border-brand-400/50 bg-brand-500/10 shadow-glow"
                   : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
@@ -74,7 +75,7 @@ export function ChipRow({
   label: string;
   options: (string | number)[];
   value: string | number;
-  onChange: (v: any) => void;
+  onChange: (v: string | number) => void;
   format?: (v: string | number) => string;
 }) {
   if (!options.length) return null;
@@ -88,7 +89,8 @@ export function ChipRow({
             <button
               key={String(opt)}
               onClick={() => onChange(opt)}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+              aria-pressed={active}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
                 active
                   ? "border-brand-400/50 bg-brand-500/15 text-brand-200"
                   : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.07]"

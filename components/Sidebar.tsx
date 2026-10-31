@@ -34,7 +34,8 @@ export function Sidebar({
             <button
               key={s.id}
               onClick={() => onSelect(s.id)}
-              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
+              aria-current={isActive ? "page" : undefined}
+              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
                 isActive
                   ? "bg-gradient-to-r from-brand-500/25 to-accent-500/10 ring-1 ring-brand-400/40"
                   : "hover:bg-white/[0.06]"

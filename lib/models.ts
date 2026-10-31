@@ -150,6 +150,9 @@ export const MODELS: AIModel[] = [
   },
 ];
 
+/** Shared by the uploader UI and the API route's validation — keep them in lockstep. */
+export const MAX_REFERENCES = 4;
+
 export function modelsForStudio(studio: StudioId): AIModel[] {
   return MODELS.filter((m) => m.studio === studio);
 }

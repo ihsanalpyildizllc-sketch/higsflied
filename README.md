@@ -1,7 +1,7 @@
 # Higgsfield — Open Generative AI Studio
 
-A free, open, self-hostable studio for creating AI-generated **images**, **video**, and
-**lip-sync** content. Inspired by the open generative-AI studio pattern, rebuilt with a
+A free, open, self-hostable studio for creating AI-generated **images**, **video**,
+**lip-sync**, and **motion transfer** content. Inspired by the open generative-AI studio pattern, rebuilt with a
 Higgsfield-branded interface: a dark, glassmorphism UI with per-studio controls, a model
 picker, reference uploads, and a browser-persisted generation history.
 
@@ -13,10 +13,11 @@ picker, reference uploads, and a browser-persisted generation history.
 - **Image Studio** — text-to-image & image-to-image (Soul 2, Soul Cast, Nano Banana Pro, Flux Pro, Z-Image)
 - **Video Studio** — text-to-video & image-to-video (Kling 3.0 / Turbo, Seedance 2.0, Sora)
 - **Lip Sync Studio** — animate a portrait or sync lips to a script
+- **Motion Sync Studio** — puppeteer body/hand motion transfer from a reference video (Motion Control, Wan Animate)
 - **Cinema Studio** — camera-controlled cinematic shots
 - **Workflow Studio** — node-pipeline templates (scaffold)
 - Dynamic controls that adapt to each model (aspect ratios, durations)
-- Up to 14 reference images per generation
+- Up to 4 reference images per generation
 - Generation history saved to `localStorage`
 - Responsive dark glassmorphism interface
 
